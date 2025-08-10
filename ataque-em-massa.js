@@ -30,7 +30,7 @@
 
         var getAlvos = function(alvos) {
             var infoAlvos = {}, infoAlvosLen;
-            if (!alvos || alvos == -1) alvos = $("textarea[name=\'coords\']").val().split(",");
+            if (!alvos || alvos == -1) alvos = $("textarea[name=\'coords\"]").val().split(",");
             else alvos = alvos.split(",");
             infoAlvosLen = alvos.length;
             infoAlvos.id = [];
@@ -118,6 +118,13 @@
                 count = 0,
                 i = 0;
             aldeiasLength = aldeias.length;
+
+            // Verifica se as informações de comando e tropas estão preenchidas
+            if (!comando || !spear || !sword || !axe || !light || !heavy || !ram || !catapult || !snob) {
+                UI.ErrorMessage("Você precisa preencher as informações de aldeias e comando para iniciar o script.");
+                return; // Impede a execução se os campos não estiverem preenchidos
+            }
+
             for (let aldeia of aldeias) {
                 setTimeout(function() {
                     $.ajax({
@@ -294,179 +301,3 @@
                                 } else {
                                     deuError = 0;
                                     thirdRequest();
-                                }
-                            }
-                        }
-                    });
-                }, random(200, 220) + (random(200, 220) * count));
-                count++;
-            }
-        };
-
-        var thirdRequest = function() {
-            let count = 0,
-                i = 0,
-                aux = 1;
-            for (let aldeia of aldeias) {
-                setTimeout(function() {
-                    $.ajax({
-                        url: "/game.php?village=" + aldeia.id + "&screen=place&ajaxaction=popup_command&h=" + csrf_token + "&client_time=" + Math.round(Timing.getCurrentServerTime() / 1e3),
-                        data: aldeia.data,
-                        type: "POST",
-                        dataType: "json",
-                        headers: {
-                            "TribalWars-Ajax": 1
-                        },
-                        success: function(data) {
-                            if (!data.error) {
-                                $("#combined_table tbody tr:eq(" + aux + ") td:eq(3)").text("ENVIADO!").css("text-align", "center").css("background-color", "#adff2f");
-                                removeVillage(aldeia.id);
-                            } else if (data.error != _("9a07c3a91c3f2b7a6a8bc675d1bcb913")) {
-                                $("#combined_table tbody tr:eq(" + aux + ") td:eq(3)").text("Erorr!").css("text-align", "center").css("background-color", "#ff1313");
-                                removeVillage(aldeia.id);
-                                console.log("Third Request: " + data.error);
-                            } else {
-                                $("#combined_table tbody tr:eq(" + aux + ") td:eq(3)").text("ERROR 5 COMMANDS!").css("text-align", "center").css("background-color", "#ff1313");
-                                console.log("Third Request 2: " + data.error);
-                            }
-                            i++;
-                            aux++;
-                            console.log("aldeiasLength == " + aldeiasLength + " i == " + i);
-                            if (!aldeias.length) {
-                                alert("Todos os comandos foram enviados!");
-                            } else if (aldeiasLength == i) {
-                                aldeias = $.merge(aldeias, aldeiasAux);
-                                console.dir(aldeias);
-                                deuError = 1;
-                                firstRequest();
-                            }
-                        },
-                        error: function(data) {
-                            console.log("Error Third Request: " + data.status + " { " + data.error + " }");
-                            if (data.status == 429 || data.status == 405) {
-                                removeVillage(aldeia.id);
-                                removeVillageAux(aldeia.id);
-                                aldeiasAux.push(aldeia);
-                                aldeiasLength--;
-                            } else {
-                                alert("Programa caiu, erro inesperado: { " + data.error + " }");
-                                throw error;
-                            }
-                            console.log("aldeiasLength == " + aldeiasLength + " i == " + i);
-                            if (!aldeias.length) {
-                                alert("Todos os comandos foram enviados!");
-                            } else if (aldeiasLength == i) {
-                                aldeias = $.merge(aldeias, aldeiasAux);
-                                console.dir(aldeias);
-                                deuError = 1;
-                                firstRequest();
-                            }
-                        }
-                    });
-                }, random(250, 280) + (random(250, 280) * count));
-                count++;
-            }
-        };
-
-        var random = function(inferior, superior) {
-            var numPossibilidades = superior - inferior,
-                aleat = Math.random() * numPossibilidades;
-            return Math.round(parseInt(inferior) + aleat);
-        };
-
-        var main = function() {
-            var coords = getParam("coords"),
-                comando = getParam("comando"),
-                i,
-                tropas = "",
-                href,
-                spearIndex,
-                snobIndex;
-            coords = (!coords) ? "" : coords;
-            comando = (!comando) ? "" : comando;
-            spearIndex = $("#combined_table tr:eq(0) th a img[src*=\"spear\"]").parent().parent().index();
-            snobIndex = $("#combined_table tr:eq(0) th a img[src*=\"snob\"]").parent().parent().index();
-            if ($("#combined_table tr:eq(0) th:eq(11) a").attr("href").indexOf("archer") == -1) {
-                for (i = spearIndex; i <= snobIndex; i++) {
-                    href = $("#combined_table tr:eq(0) th:eq(" + i + ") a img").attr("src");
-                    tropas += "<div class=\'itemTropa\'><img src=" + href + ">" + "<input type=\'text\' id=\'" + href.match(/unit_?[a-z]+/g)[0].split("_")[1] + "\' size=\'5\'/></div>";
-                }
-            } else {
-                for (i = spearIndex; i <= snobIndex; i++) {
-                    href = $("#combined_table tr:eq(0) th:eq(" + i + ") a img").attr("src");
-                    tropas += "<div class=\'itemTropa\'><img src=" + href + ">" + "<input type=\'text\' id=\'" + href.match(/unit_?[a-z]+/g)[0].split("_")[1] + "\' size=\'10\'/></div>";
-                }
-            }
-            $("#overview_menu").after("<div style=\'width:98%;padding:1%;background:rgba(234, 199, 127, 0.64);\' class=\'content-command\'><h3 style=\'border-bottom: 1px solid #c3ab5a;color: #592805;PADDING-BOTTOM: 8px;\'>COORDENADAS ALVO</h3><textarea name=\'coords\' rows=\'10\' style=\'width:99%;border-radius:5px;\'>" + (!coords ? "" : coords) + "</textarea><br><div name=\'nCoords\'></div><br><div style=\'display:block;padding-top:5px;padding-bottom:5px\'><p style=\'float:left\'>Tipo de Comando:</p>\xC2\xA0\xC2\xA0<select id=\'comando\' style=\'float:left\'><option disabled=\'disabled\' " + ((comando == -1 || !comando) ? "selected=\'selected\'" : "") + "></option><option value=\'attack\'" + (comando == \'attack\' ? "selected=\'selected\'" : "") + ">Ataque</option><option value=\'support\' " + (comando == \'support\' ? "selected=\'selected\'" : "") + ">Apoio</option></select></div><br><br><input type=\'submit\' id=\'salvar\' name=\'Att1\' value=\'#SALVAR#\' style=\'background:no-repeat 3px -74px, -webkit-gradient(linear, left top, left bottom, color-stop(0%,#b69471), color-stop(22%,#9f764d), color-stop(30%,#8f6133), color-stop(100%,#6c4d2d));color:white;display: inline-block;padding:3px;margin:0 2px;text-align: center;font-family: Verdana, Arial;font-size: 12px !important;font-weight: bold;line-height: normal;cursor: pointer;border-radius: 5px;border: 1px solid #000;color: #fff;white-space: nowrap;\'/><input type=\'submit\' name=\'send\' value=\'#Enviar Comandos#\' style=\'background:no-repeat 3px -74px, -webkit-gradient(linear, left top, left bottom, color-stop(0%,#b69471), color-stop(22%,#9f764d), color-stop(30%,#8f6133), color-stop(100%,#6c4d2d));color:white;display: inline-block;padding:3px;margin:0 2px;text-align: center;font-family: Verdana, Arial;font-size: 12px !important;font-weight: bold;line-height: normal;cursor: pointer;border-radius: 5px;border: 1px solid #000;color: #fff;white-space: nowrap;\'/></div>");
-            $(".content-command").prepend("<div style=\'width:100%\' class=\'tropas\'><h3 style=\'border-bottom: 1px solid #c3ab5a;color: #592805;PADDING-BOTTOM: 8px;\'>TROPAS</h3></div>");
-            $(".tropas").append("<div id=\'camposTropas\' style=\'display:flex;flex-wrap: wrap;justify-content: space-around;\'>" + tropas + "</div>");
-            $("input#salvar").click(function() {
-                setParam("spear", $("#spear").val());
-                setParam("sword", $("#sword").val());
-                setParam("axe", $("#axe").val());
-                setParam("archer", $("#archer").val());
-                setParam("spy", $("#spy").val());
-                setParam("light", $("#light").val());
-                setParam("heavy", $("#heavy").val());
-                setParam("marcher", $("#marcher").val());
-                setParam("ram", $("#ram").val());
-                setParam("catapult", $("#catapult").val());
-                setParam("knight", $("#knight").val());
-                setParam("snob", $("#snob").val());
-                setParam("comando", $("#comando").val());
-                setParam("coords", $("textarea[name=\'coords\']").val());
-                UI.InfoMessage("Configurações salvas!");
-            });
-            usefullVillages();
-            $("tr.nowrap").each(function(i) {
-                $(this).find("td:eq(1)").prepend("<input type=\'checkbox\' data-id=\'" + aldeias[i].id + "\' data-coord=\'" + aldeias[i].coord + "\' class=\'chkbox\'/>");
-            });
-            $(".menu-side:eq(0)").after("<td class=\'qtdCheckbox\' style=\'background: #0c0707;color: white;\'></td>");
-            $("textarea[name=coords]").blur(function() {
-                var valor = $("textarea[name=coords]").val();
-                $("div[name=nCoords]").html("Nº Alvos: " + (valor ? valor.match(/[|]/g).length : 0));
-            });
-            $("textarea[name=coords]").change(function() {
-                setParam("coordsRes", "");
-            });
-            $(".chkbox").change(function() {
-                var qtcBoxChecked = $(".chkbox:checked").length;
-                if (qtcBoxChecked) {
-                    $(".qtdCheckbox").html("Selecionados: " + qtcBoxChecked);
-                } else {
-                    $(".qtdCheckbox").html("Selecionados: 0");
-                }
-            });
-            $("#spear").val(getParam("spear"));
-            $("#sword").val(getParam("sword"));
-            $("#axe").val(getParam("axe"));
-            $("#archer").val(getParam("archer"));
-            $("#spy").val(getParam("spy"));
-            $("#light").val(getParam("light"));
-            $("#heavy").val(getParam("heavy"));
-            $("#marcher").val(getParam("marcher"));
-            $("#ram").val(getParam("ram"));
-            $("#catapult").val(getParam("catapult"));
-            $("#knight").val(getParam("knight"));
-            $("#snob").val(getParam("snob"));
-            $("input[name=\'send\']").click(function() {
-                aldeias = [];
-                $(".chkbox:checked").each(function() {
-                    aldeias.push(new Aldeia($(this).data("coord"), $(this).data("id"), 0, 0, {}, ""));
-                });
-                if (aldeias.length > 0) {
-                    sortCoords();
-                    firstRequest();
-                } else {
-                    alert("Selecione pelo menos uma aldeia!");
-                }
-            });
-        };
-
-        if (permission.includes(game_data.player.name)) {
-            main();
-        } else {
-            UI.ErrorMessage("Você não tem permissão para usar este script.");
-        }
-    }
-})();
